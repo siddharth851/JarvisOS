@@ -68,6 +68,10 @@ class Settings(BaseSettings):
         default="llama3.2",
         validation_alias="OLLAMA_MODEL",
     )
+    database_url: str = Field(
+        default="sqlite:///./jarvis.db",
+        validation_alias="DATABASE_URL",
+    )
 
     @property
     def is_production(self) -> bool:

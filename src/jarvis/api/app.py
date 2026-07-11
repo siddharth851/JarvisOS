@@ -20,6 +20,7 @@ from jarvis.api.middleware import RequestIDMiddleware, RequestLoggingMiddleware
 from jarvis.api.v1.router import router as v1_router
 from jarvis.core.config import Settings, get_settings
 from jarvis.core.logging import configure_logging
+import jarvis.database as database
 
 logger = structlog.get_logger("jarvis.app")
 
@@ -35,6 +36,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     injection.
     """
     settings: Settings = app.state.settings
+    database.init_db(settings)
+    app.state.db_engine = database.engine
+    app.state.db_session_local = database.SessionLocal
     logger.info(
         "jarvis_startup",
         app_name=settings.app_name,
@@ -42,6 +46,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         version=__version__,
     )
     yield
+    database.shutdown_db()
     logger.info("jarvis_shutdown", app_name=settings.app_name)
 
 
