@@ -81,4 +81,9 @@ class ToolRegistry:
 @lru_cache(maxsize=1)
 def get_tool_registry() -> ToolRegistry:
     """Return a cached, singleton `ToolRegistry` instance."""
-    return ToolRegistry()
+    registry = ToolRegistry()
+    from jarvis.tools.browser import BrowserTool
+    from jarvis.tools.file_tool import FileTool
+    registry.register(BrowserTool())
+    registry.register(FileTool())
+    return registry
