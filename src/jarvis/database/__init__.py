@@ -19,12 +19,12 @@ Base = declarative_base()
 engine: Engine | None = None
 SessionLocal: sessionmaker[Session] | None = None
 
+# Import models to ensure they are registered on Base before metadata creation.
+from jarvis.database import models  # noqa: F401
+
 
 def init_db(settings: Settings) -> None:
-    """Initialize the SQLAlchemy engine and session factory.
-
-    This creates the database connection but does not create any tables.
-    """
+    """Initialize the SQLAlchemy engine, create tables, and configure sessions."""
 
     global engine, SessionLocal
     if engine is not None and SessionLocal is not None:
@@ -35,6 +35,7 @@ def init_db(settings: Settings) -> None:
         engine_kwargs["connect_args"] = {"check_same_thread": False}
 
     engine = create_engine(settings.database_url, **engine_kwargs)
+    Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(
         bind=engine,
         autoflush=False,
