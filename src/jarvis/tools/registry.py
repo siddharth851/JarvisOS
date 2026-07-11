@@ -84,6 +84,8 @@ def get_tool_registry() -> ToolRegistry:
     registry = ToolRegistry()
     from jarvis.tools.browser import BrowserTool
     from jarvis.tools.file_tool import FileTool
+    from jarvis.tools.terminal import TerminalTool
     registry.register(BrowserTool())
     registry.register(FileTool())
+    registry.register(TerminalTool())
     return registry
