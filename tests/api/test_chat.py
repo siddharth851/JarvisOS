@@ -16,6 +16,7 @@ from jarvis.services.chat import ChatResult, ChatService, get_chat_service
 def mock_chat_service() -> MagicMock:
     service = MagicMock(spec=ChatService)
     service.chat.return_value = ChatResult(
+        session_id="123e4567-e89b-12d3-a456-426614174000",
         response="Hi there!",
         model="llama3.2",
         timestamp=datetime(2026, 7, 11, 12, 0, 0, tzinfo=UTC),
@@ -45,6 +46,7 @@ def test_chat_response_shape(chat_client: TestClient) -> None:
     response = chat_client.post("/api/v1/chat", json={"message": "Hello"})
     body = response.json()
 
+    assert body["session_id"] == "123e4567-e89b-12d3-a456-426614174000"
     assert body["response"] == "Hi there!"
     assert body["model"] == "llama3.2"
     datetime.fromisoformat(body["timestamp"])
@@ -56,7 +58,7 @@ def test_chat_passes_message_to_service(
 ) -> None:
     chat_client.post("/api/v1/chat", json={"message": "Hello"})
 
-    mock_chat_service.chat.assert_called_once_with("Hello")
+    mock_chat_service.chat.assert_called_once_with("Hello", session_id=None)
 
 
 def test_chat_empty_message_returns_422(chat_client: TestClient) -> None:

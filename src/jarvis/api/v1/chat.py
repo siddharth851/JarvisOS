@@ -1,12 +1,13 @@
 """Chat endpoint."""
 
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from jarvis.providers.ollama import OllamaConnectionError, OllamaResponseError
-from jarvis.services.chat import ChatService, get_chat_service
+from jarvis.services.chat import ChatResult, ChatService, get_chat_service
 
 router = APIRouter(tags=["chat"])
 
@@ -15,6 +16,7 @@ class ChatRequest(BaseModel):
     """Request body for `POST /chat`."""
 
     message: str = Field(min_length=1)
+    session_id: Optional[str] = None
 
     @field_validator("message", mode="before")
     @classmethod
@@ -23,10 +25,19 @@ class ChatRequest(BaseModel):
             return value.strip()
         return value
 
+    @field_validator("session_id", mode="before")
+    @classmethod
+    def strip_session_id(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
 
 class ChatResponse(BaseModel):
     """Response body for `POST /chat`."""
 
+    session_id: str
     response: str
     model: str
     timestamp: datetime
@@ -39,7 +50,7 @@ async def post_chat(
 ) -> ChatResponse:
     """Send a message and receive an Ollama-generated reply."""
     try:
-        result = chat_service.chat(body.message)
+        result = chat_service.chat(body.message, session_id=body.session_id)
     except OllamaConnectionError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -52,6 +63,7 @@ async def post_chat(
         ) from exc
 
     return ChatResponse(
+        session_id=result.session_id,
         response=result.response,
         model=result.model,
         timestamp=result.timestamp,
