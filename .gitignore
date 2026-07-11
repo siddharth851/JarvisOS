@@ -1,1 +1,18 @@
+# Environment
 .env
+
+# Database
+jarvis.db
+*.db
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
