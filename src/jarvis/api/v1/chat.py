@@ -56,7 +56,7 @@ class ToolResponse(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.post("/chat", response_model=None)
+@router.post("/chat", response_model=Union[ChatResponse, ToolResponse])
 async def post_chat(
     body: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
