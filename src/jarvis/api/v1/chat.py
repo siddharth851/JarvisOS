@@ -1,13 +1,15 @@
 """Chat endpoint."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from jarvis.providers.ollama import OllamaConnectionError, OllamaResponseError
 from jarvis.services.chat import ChatResult, ChatService, get_chat_service
+from jarvis.services.command_router import CommandRouter
+from jarvis.services.tool_executor import ToolExecutor
 
 router = APIRouter(tags=["chat"])
 
@@ -35,7 +37,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Response body for `POST /chat`."""
+    """Response body for `POST /chat` (AI conversation)."""
 
     session_id: str
     response: str
@@ -43,12 +45,61 @@ class ChatResponse(BaseModel):
     timestamp: datetime
 
 
-@router.post("/chat", response_model=ChatResponse)
+class ToolResponse(BaseModel):
+    """Response body for `POST /chat` (tool execution)."""
+
+    type: str = Field(default="tool")
+    session_id: str
+    tool: str
+    status: str  # "success" | "error"
+    message: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/chat", response_model=None)
 async def post_chat(
     body: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
-) -> ChatResponse:
-    """Send a message and receive an Ollama-generated reply."""
+):
+    """Route the message to either a tool execution path or Ollama chat."""
+
+    command_router = CommandRouter()
+    tool_executor = ToolExecutor()
+    routing = command_router.route(body.message)
+
+    # TOOL path
+    if routing.type == "TOOL":
+        tool_result = tool_executor.execute(routing)  # always non-None for TOOL
+
+        # Preserve provided session_id; otherwise generate a new one for frontend tracking.
+        if body.session_id:
+            session_id = body.session_id
+        else:
+            import uuid
+
+            session_id = str(uuid.uuid4())
+
+        assert tool_result is not None
+        if tool_result.get("success") is True:
+            return ToolResponse(
+                type="tool",
+                session_id=session_id,
+                tool=str(tool_result.get("tool") or ""),
+                status="success",
+                message="Tool executed successfully.",
+                data={"result": tool_result.get("result")},
+            )
+
+        return ToolResponse(
+            type="tool",
+            session_id=session_id,
+            tool=str(tool_result.get("tool") or ""),
+            status="error",
+            message=str(tool_result.get("error") or "Tool execution failed."),
+            data={},
+        )
+
+    # CHAT path (existing behavior)
     try:
         result = chat_service.chat(body.message, session_id=body.session_id)
     except OllamaConnectionError as exc:
