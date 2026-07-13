@@ -61,6 +61,17 @@ class CommandPlanner:
                 arguments={},
             )
 
+        if intent == "BROWSER_OPEN_DESTINATION":
+            destination = entities.get("destination")
+            if not isinstance(destination, str) or not destination:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="browser",
+                action="open_destination",
+                arguments={"destination": destination},
+            )
+
         if intent == "BROWSER_OPEN_URL":
             url = entities.get("url")
             if not isinstance(url, str) or not url:

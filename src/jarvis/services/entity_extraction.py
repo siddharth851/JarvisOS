@@ -30,6 +30,11 @@ class PatternEntityExtractor:
         text = (message or "").strip()
         norm = re.sub(r"\s+", " ", text)
 
+        # Browser open_destination: resolve site name / domain / URL dynamically.
+        if intent_hint == "BROWSER_OPEN_DESTINATION":
+            destination = self._extract_destination(norm)
+            return ExtractedEntities(entities={"destination": destination})
+
         # Browser open_url: try to capture an URL anywhere.
         if intent_hint == "BROWSER_OPEN_URL":
             url = self._extract_url(norm)
@@ -116,8 +121,23 @@ class PatternEntityExtractor:
 
     def _strip_leading_verbs(self, text: str) -> str:
         t = text.lower()
+        # Handle multi-word nav phrases first.
+        t = re.sub(r"^(go\s+to|navigate\s+to)\s+", "", t)
         t = re.sub(r"^(open|visit|launch)\s+", "", t).strip()
         return t or ""
+
+    def _extract_destination(self, text: str) -> str:
+        """Extract raw destination string for BROWSER_OPEN_DESTINATION intent.
+
+        Returns the text after stripping navigation verbs.  The URLResolver
+        will handle actual resolution (full URL / domain / site name / search).
+        """
+        # If there is already a full URL, return it verbatim.
+        m = re.search(r"(https?://[^\s]+)", text, flags=re.IGNORECASE)
+        if m:
+            return m.group(1)
+        # Otherwise strip nav verbs and return whatever remains.
+        return self._strip_leading_verbs(text)
 
     def _after_keyword(self, text: str, keywords: list[str]) -> str:
         """Return text after the first occurrence of any keyword."""

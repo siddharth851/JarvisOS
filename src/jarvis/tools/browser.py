@@ -18,7 +18,14 @@ class BrowserTool(BaseTool):
     @property
     def description(self) -> str:
         """A brief description explaining what the tool does and its purpose."""
-        return "A tool to open URLs and search Google using the web browser."
+        return (
+            "A tool to open URLs, resolve website destinations from natural "
+            "language, and search Google using the web browser."
+        )
+
+    # ------------------------------------------------------------------
+    # Core primitives (unchanged public API)
+    # ------------------------------------------------------------------
 
     def open_url(self, url: str) -> bool:
         """Open the specified URL in the default web browser.
@@ -52,18 +59,86 @@ class BrowserTool(BaseTool):
         """
         return self.open_url("https://google.com")
 
-    def execute(self, **kwargs: Any) -> Any:
-        """Execute the browser tool action.
+    # ------------------------------------------------------------------
+    # Extended capability: generic destination + Google search
+    # ------------------------------------------------------------------
+
+    def open_destination(self, destination: str) -> bool:
+        """Resolve *destination* and open it in the default web browser.
+
+        The resolution logic lives entirely in :class:`URLResolver` and
+        follows this priority:
+
+        1. Full URL (``http://`` / ``https://`` prefix)
+        2. Bare domain (e.g. ``github.com``)
+        3. Known website name (e.g. "GitHub", "ChatGPT", "Canva")
+        4. Google search fallback
 
         Args:
-            action: The action to perform ("open_url" or "open_google").
-            url: The URL to open (required for "open_url").
+            destination: Raw destination string from user input.
 
         Returns:
             True if browser open was triggered successfully.
 
         Raises:
-            ToolError: If action is missing, unsupported, or if parameters are invalid.
+            ToolError: If *destination* is empty or the browser fails.
+        """
+        if not destination or not destination.strip():
+            raise ToolError("destination cannot be empty")
+
+        from jarvis.services.url_resolver import get_url_resolver
+
+        try:
+            resolver = get_url_resolver()
+            url = resolver.resolve(destination)
+        except ValueError as e:
+            raise ToolError(str(e))
+
+        return self.open_url(url)
+
+    def open_google_search(self, query: str) -> bool:
+        """Perform a Google search for *query* in the default web browser.
+
+        Args:
+            query: The search query string.
+
+        Returns:
+            True if browser open was triggered successfully.
+
+        Raises:
+            ToolError: If *query* is empty or the browser fails.
+        """
+        if not query or not query.strip():
+            raise ToolError("query cannot be empty")
+
+        from urllib.parse import quote_plus
+
+        url = f"https://www.google.com/search?q={quote_plus(query.strip())}"
+        return self.open_url(url)
+
+    # ------------------------------------------------------------------
+    # execute() dispatcher — backward compatible
+    # ------------------------------------------------------------------
+
+    def execute(self, **kwargs: Any) -> Any:
+        """Execute the browser tool action.
+
+        Args:
+            action: The action to perform.
+                    Supported values:
+                    - ``"open_url"``          — open a raw http(s) URL
+                    - ``"open_google"``        — open google.com
+                    - ``"open_destination"``   — resolve destination & open
+                    - ``"open_google_search"`` — Google search for a query
+            url: The URL to open (required for ``"open_url"``).
+            destination: Destination string (required for ``"open_destination"``).
+            query: Search query (required for ``"open_google_search"``).
+
+        Returns:
+            True if browser open was triggered successfully.
+
+        Raises:
+            ToolError: If action is missing, unsupported, or parameters are invalid.
         """
         action = kwargs.get("action")
         if not action:
@@ -77,6 +152,18 @@ class BrowserTool(BaseTool):
 
         elif action == "open_google":
             return self.open_google()
+
+        elif action == "open_destination":
+            destination = kwargs.get("destination")
+            if destination is None:
+                raise ToolError("Missing 'destination' parameter for 'open_destination' action")
+            return self.open_destination(destination)
+
+        elif action == "open_google_search":
+            query = kwargs.get("query")
+            if query is None:
+                raise ToolError("Missing 'query' parameter for 'open_google_search' action")
+            return self.open_google_search(query)
 
         else:
             raise ToolError(f"Unsupported action: '{action}'")

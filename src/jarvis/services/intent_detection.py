@@ -28,6 +28,10 @@ class PatternIntentDetector:
         norm = self._normalize(text)
 
         # Tool: browser
+        if re.search(r"\b(go\s+to|navigate\s+to)\b", norm):
+            # "go to GitHub", "navigate to reddit.com"
+            return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.95, hint=text)
+
         if re.search(r"\b(open|visit|launch)\b", norm):
             # "open google" intent should only trigger when no URL/domain is present.
             if re.fullmatch(r"(open|visit|launch)\s+google", norm.strip()):
@@ -37,8 +41,9 @@ class PatternIntentDetector:
             if re.search(r"\bopen\s+(website|url)\b", norm):
                 return DetectedIntent(intent="BROWSER_OPEN_URL", confidence=0.9, hint=text)
 
-            # If user says "open <something>" treat as open_url (confidence moderate)
-            return DetectedIntent(intent="BROWSER_OPEN_URL", confidence=0.6, hint=text)
+            # If user says "open <something>" treat as open_destination
+            # (the resolver will handle URL, domain, or site-name lookup).
+            return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.85, hint=text)
 
         if re.search(r"\b(search)\b", norm):
             # future: map to browser search tool
