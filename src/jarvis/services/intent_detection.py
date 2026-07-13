@@ -27,27 +27,88 @@ class PatternIntentDetector:
         text = message.strip()
         norm = self._normalize(text)
 
-        # Tool: browser
+        # Tool: browser automation — specific actions checked BEFORE generic open/search
+
+        # Page reading / content extraction
+        if re.search(r"\b(summarize|summarise)\b", norm) and re.search(
+            r"\b(page|website|site|webpage)\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_SUMMARIZE_PAGE", confidence=0.95, hint=text)
+
+        if re.search(r"\bread\b", norm) and re.search(
+            r"\b(page|website|site|webpage|current)\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_READ_PAGE", confidence=0.9, hint=text)
+
+        if re.search(r"\b(extract|get|show|what.?s)\b", norm) and re.search(
+            r"\b(title)\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_GET_PAGE_TITLE", confidence=0.9, hint=text)
+
+        if re.search(r"\b(extract|get|show)\b", norm) and re.search(
+            r"\b(text|content|visible)\b", norm
+        ) and re.search(r"\b(page|website|site)\b", norm):
+            return DetectedIntent(intent="BROWSER_GET_PAGE_TEXT", confidence=0.9, hint=text)
+
+        # Navigation controls
+        if re.search(r"\bgo\s+back\b", norm) or re.search(r"\bnavigate\s+back\b", norm):
+            return DetectedIntent(intent="BROWSER_GO_BACK", confidence=0.97)
+
+        if re.search(r"\bgo\s+forward\b", norm) or re.search(r"\bnavigate\s+forward\b", norm):
+            return DetectedIntent(intent="BROWSER_GO_FORWARD", confidence=0.97)
+
+        if re.search(r"\b(refresh|reload)\b", norm) and re.search(
+            r"\b(page|browser|tab|site)\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_REFRESH", confidence=0.95)
+
+        if re.search(r"\bopen\s+(a\s+)?new\s+tab\b", norm) or re.search(
+            r"\bnew\s+tab\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_OPEN_NEW_TAB", confidence=0.95, hint=text)
+
+        if re.search(r"\bclose\s+(the\s+)?(current\s+)?tab\b", norm):
+            return DetectedIntent(intent="BROWSER_CLOSE_TAB", confidence=0.95)
+
+        # First search result
+        if re.search(r"\b(open|click|visit)\b", norm) and re.search(
+            r"\b(first|top)\b", norm
+        ) and re.search(r"\b(result|link)\b", norm):
+            return DetectedIntent(intent="BROWSER_OPEN_FIRST_RESULT", confidence=0.95)
+
+        # Compound: "open Google and search X"
+        if re.search(r"\b(open|go to|visit)\b", norm) and re.search(
+            r"\bgoogle\b", norm
+        ) and re.search(r"\band\s+search\b", norm):
+            return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.95, hint=text)
+
+        # Google search — explicit patterns
+        if re.search(r"\bsearch\b", norm) and re.search(
+            r"\b(google|for|on)\b", norm
+        ):
+            return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.9, hint=text)
+
+        if re.search(r"\bsearch(?:\s+for)?\s+\S", norm):
+            return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.9, hint=text)
+
+        if re.search(r"\b(look up|find)\b", norm):
+            return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.85, hint=text)
+
+        if re.search(r"\b(search)\b", norm):
+            return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.7, hint=text)
+
+        # Generic open/navigate
         if re.search(r"\b(go\s+to|navigate\s+to)\b", norm):
-            # "go to GitHub", "navigate to reddit.com"
             return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.95, hint=text)
 
         if re.search(r"\b(open|visit|launch)\b", norm):
-            # "open google" intent should only trigger when no URL/domain is present.
             if re.fullmatch(r"(open|visit|launch)\s+google", norm.strip()):
                 return DetectedIntent(intent="BROWSER_OPEN_GOOGLE", confidence=0.95)
 
-            # "open website <url>" or "open url <url>"
             if re.search(r"\bopen\s+(website|url)\b", norm):
                 return DetectedIntent(intent="BROWSER_OPEN_URL", confidence=0.9, hint=text)
 
-            # If user says "open <something>" treat as open_destination
-            # (the resolver will handle URL, domain, or site-name lookup).
             return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.85, hint=text)
-
-        if re.search(r"\b(search)\b", norm):
-            # future: map to browser search tool
-            return DetectedIntent(intent="BROWSER_SEARCH", confidence=0.6, hint=text)
 
         # Tool: file system
         if re.search(r"\b(create|make)\b", norm):

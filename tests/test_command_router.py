@@ -39,6 +39,75 @@ def test_router_browser_actions() -> None:
     assert res.arguments == {"url": "https://google.com"}
 
 
+def test_router_browser_search_actions() -> None:
+    router = CommandRouter()
+
+    res = router.route("Open Google and search ChatGPT")
+    assert res.type == "TOOL"
+    assert res.tool == "browser"
+    assert res.action == "search_google"
+    assert res.arguments == {"query": "ChatGPT"}
+
+    res = router.route("Search latest AI news")
+    assert res.type == "TOOL"
+    assert res.action == "search_google"
+    assert res.arguments == {"query": "latest AI news"}
+
+    res = router.route("Can you search FastAPI tutorial?")
+    assert res.type == "TOOL"
+    assert res.action == "search_google"
+    assert res.arguments == {"query": "FastAPI tutorial"}
+
+
+def test_router_browser_navigation_actions() -> None:
+    router = CommandRouter()
+
+    res = router.route("go back")
+    assert res.type == "TOOL"
+    assert res.action == "go_back"
+    assert res.arguments == {}
+
+    res = router.route("go forward")
+    assert res.type == "TOOL"
+    assert res.action == "go_forward"
+
+    res = router.route("refresh the page")
+    assert res.type == "TOOL"
+    assert res.action == "refresh"
+
+    res = router.route("open first result")
+    assert res.type == "TOOL"
+    assert res.action == "open_first_result"
+
+    res = router.route("open new tab")
+    assert res.type == "TOOL"
+    assert res.action == "open_new_tab"
+
+    res = router.route("close the current tab")
+    assert res.type == "TOOL"
+    assert res.action == "close_tab"
+
+
+def test_router_browser_page_reader_actions() -> None:
+    router = CommandRouter()
+
+    res = router.route("read the current page")
+    assert res.type == "TOOL"
+    assert res.action == "read_page"
+
+    res = router.route("get the page title")
+    assert res.type == "TOOL"
+    assert res.action == "get_page_title"
+
+    res = router.route("extract visible text from the page")
+    assert res.type == "TOOL"
+    assert res.action == "get_page_text"
+
+    res = router.route("summarize the webpage")
+    assert res.type == "TOOL"
+    assert res.action == "summarize_page"
+
+
 def test_router_file_actions() -> None:
     router = CommandRouter()
 

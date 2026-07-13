@@ -53,6 +53,50 @@ class CommandPlanner:
         # Map intent -> tool/action (not hardcoded message strings).
         intent = detected_intent.intent
 
+        # ---- Browser automation intents ----
+
+        # Parameter-less automation actions
+        _PARAMLESS_BROWSER: dict[str, str] = {
+            "BROWSER_GO_BACK": "go_back",
+            "BROWSER_GO_FORWARD": "go_forward",
+            "BROWSER_REFRESH": "refresh",
+            "BROWSER_CLOSE_TAB": "close_tab",
+            "BROWSER_OPEN_FIRST_RESULT": "open_first_result",
+            "BROWSER_READ_PAGE": "read_page",
+            "BROWSER_GET_PAGE_TITLE": "get_page_title",
+            "BROWSER_GET_PAGE_TEXT": "get_page_text",
+            "BROWSER_SUMMARIZE_PAGE": "summarize_page",
+        }
+        if intent in _PARAMLESS_BROWSER:
+            return PlannedCommand(
+                type="TOOL",
+                tool="browser",
+                action=_PARAMLESS_BROWSER[intent],
+                arguments={},
+            )
+
+        if intent == "BROWSER_SEARCH_GOOGLE":
+            query = entities.get("query", "")
+            if not isinstance(query, str) or not query:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="browser",
+                action="search_google",
+                arguments={"query": query},
+            )
+
+        if intent == "BROWSER_OPEN_NEW_TAB":
+            url = entities.get("url", "")
+            return PlannedCommand(
+                type="TOOL",
+                tool="browser",
+                action="open_new_tab",
+                arguments={"url": url},
+            )
+
+        # ---- Legacy browser intents ----
+
         if intent == "BROWSER_OPEN_GOOGLE":
             return PlannedCommand(
                 type="TOOL",

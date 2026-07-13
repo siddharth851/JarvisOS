@@ -30,6 +30,31 @@ class PatternEntityExtractor:
         text = (message or "").strip()
         norm = re.sub(r"\s+", " ", text)
 
+        # Browser automation: search_google — extract search query
+        if intent_hint == "BROWSER_SEARCH_GOOGLE":
+            query = self._extract_search_query(norm)
+            return ExtractedEntities(entities={"query": query})
+
+        # Browser automation: open_new_tab — optionally extract a URL
+        if intent_hint == "BROWSER_OPEN_NEW_TAB":
+            url = self._extract_url(norm)
+            return ExtractedEntities(entities={"url": url or ""})
+
+        # Browser automation: parameter-less actions
+        for _no_param_intent in (
+            "BROWSER_GO_BACK",
+            "BROWSER_GO_FORWARD",
+            "BROWSER_REFRESH",
+            "BROWSER_CLOSE_TAB",
+            "BROWSER_OPEN_FIRST_RESULT",
+            "BROWSER_READ_PAGE",
+            "BROWSER_GET_PAGE_TITLE",
+            "BROWSER_GET_PAGE_TEXT",
+            "BROWSER_SUMMARIZE_PAGE",
+        ):
+            if intent_hint == _no_param_intent:
+                return ExtractedEntities(entities={})
+
         # Browser open_destination: resolve site name / domain / URL dynamically.
         if intent_hint == "BROWSER_OPEN_DESTINATION":
             destination = self._extract_destination(norm)
@@ -163,3 +188,48 @@ class PatternEntityExtractor:
         # Remove common terminal prefixes.
         t = re.sub(r"^(run|execute|terminal)\s+", "", text.strip(), flags=re.IGNORECASE)
         return t.strip()
+
+    def _extract_search_query(self, text: str) -> str:
+        """Extract the meaningful search query from natural language."""
+        t = self._normalize_spaces(text)
+        t = t.rstrip("?.!").strip()
+
+        # Strip polite / filler prefixes.
+        t = re.sub(
+            r"^(?:can you|could you|please|would you|i want to|i'd like to)\s+",
+            "",
+            t,
+            flags=re.IGNORECASE,
+        ).strip()
+
+        # Compound: "open Google and search ChatGPT"
+        compound = re.search(
+            r"(?:open|go to|visit)\s+(?:google|the web)\s+and\s+search(?:\s+for)?\s+(.+)$",
+            t,
+            flags=re.IGNORECASE,
+        )
+        if compound:
+            return compound.group(1).strip()
+
+        # Ordered patterns — most specific first.
+        patterns = [
+            r"^search(?:\s+on)?\s+google(?:\s+for)?\s+(.+)$",
+            r"^google\s+search(?:\s+for)?\s+(.+)$",
+            r"^search(?:\s+for)?\s+(.+)$",
+            r"^look up\s+(.+)$",
+            r"^find\s+(.+)$",
+        ]
+        for pattern in patterns:
+            match = re.match(pattern, t, flags=re.IGNORECASE)
+            if match:
+                query = match.group(1).strip()
+                query = re.sub(r"\s+on\s+google$", "", query, flags=re.IGNORECASE).strip()
+                return query
+
+        # Fallback: strip known leading tokens in sequence.
+        t = re.sub(r"^search\s+", "", t, flags=re.IGNORECASE).strip()
+        t = re.sub(r"^(?:on\s+)?google\s+", "", t, flags=re.IGNORECASE).strip()
+        t = re.sub(r"^for\s+", "", t, flags=re.IGNORECASE).strip()
+        if t.lower() in {"search", "google", "for"}:
+            return ""
+        return t
