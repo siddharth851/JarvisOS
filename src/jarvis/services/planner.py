@@ -127,6 +127,41 @@ class CommandPlanner:
                 arguments={"url": url},
             )
 
+        # ---- Application lifecycle intents ----
+
+        if intent == "APP_LAUNCH":
+            application = entities.get("application")
+            if not isinstance(application, str) or not application:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="application",
+                action="launch",
+                arguments={"application": application},
+            )
+
+        if intent == "APP_CLOSE":
+            application = entities.get("application")
+            if not isinstance(application, str) or not application:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="application",
+                action="close",
+                arguments={"application": application},
+            )
+
+        if intent == "APP_FOCUS":
+            application = entities.get("application")
+            if not isinstance(application, str) or not application:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="application",
+                action="focus",
+                arguments={"application": application},
+            )
+
         if intent == "FILE_CREATE_FOLDER":
             # Backward-compatible behavior: allow empty suffix.
             path = entities.get("path")

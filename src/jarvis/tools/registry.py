@@ -4,6 +4,7 @@ from functools import lru_cache
 from jarvis.core.logging import get_logger
 from jarvis.tools.base import BaseTool
 from jarvis.tools.exceptions import ToolNotFoundError, ToolRegistrationError
+from jarvis.tools.application import ApplicationTool
 
 logger = get_logger("jarvis.tools")
 
@@ -85,7 +86,9 @@ def get_tool_registry() -> ToolRegistry:
     from jarvis.tools.browser import BrowserTool
     from jarvis.tools.file_tool import FileTool
     from jarvis.tools.terminal import TerminalTool
+    from jarvis.tools.application import ApplicationTool
     registry.register(BrowserTool())
     registry.register(FileTool())
     registry.register(TerminalTool())
+    registry.register(ApplicationTool())
     return registry

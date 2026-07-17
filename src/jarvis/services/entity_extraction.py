@@ -127,6 +127,10 @@ class PatternEntityExtractor:
             command = self._strip_terminal_prefix(norm)
             return ExtractedEntities(entities={"command": command})
 
+        if intent_hint in {"APP_LAUNCH", "APP_CLOSE", "APP_FOCUS"}:
+            application = self._extract_application_name(norm)
+            return ExtractedEntities(entities={"application": application})
+
         return ExtractedEntities(entities={})
 
     def _normalize_spaces(self, s: str) -> str:
@@ -233,3 +237,15 @@ class PatternEntityExtractor:
         if t.lower() in {"search", "google", "for"}:
             return ""
         return t
+
+    def _extract_application_name(self, text: str) -> str:
+        """Extract the application name from a user command."""
+        # strip common command prefixes
+        stripped = re.sub(
+            r"^(?:open|launch|start|close|quit|exit|focus)\b\s*", "", text, flags=re.IGNORECASE
+        ).strip()
+        # remove polite prefixes
+        stripped = re.sub(
+            r"^(?:please|can you|could you|would you|i want to)\s+", "", stripped, flags=re.IGNORECASE
+        ).strip()
+        return stripped

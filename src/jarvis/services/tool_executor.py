@@ -23,6 +23,7 @@ class ToolExecutor:
             "browser": "browser_tool",
             "file": "file_tool",
             "terminal": "terminal_tool",
+            "application": "application_tool",
         }
 
     def execute(self, routing_result: RoutingResult) -> dict[str, Any] | None:

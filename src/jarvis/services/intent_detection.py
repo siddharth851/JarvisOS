@@ -97,6 +97,25 @@ class PatternIntentDetector:
         if re.search(r"\b(search)\b", norm):
             return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.7, hint=text)
 
+        # Application lifecycle commands
+        if re.search(r"\b(open|launch|start)\b", norm) and not re.search(
+            r"\b(website|site|url|webpage|browser|search|google|file|folder|directory|tab|page)\b",
+            norm,
+        ):
+            return DetectedIntent(intent="APP_LAUNCH", confidence=0.9, hint=text)
+
+        if re.search(r"\b(close|quit|exit)\b", norm) and not re.search(
+            r"\b(tab|page|browser|window|site|website)\b",
+            norm,
+        ):
+            return DetectedIntent(intent="APP_CLOSE", confidence=0.9, hint=text)
+
+        if re.search(r"\bfocus\b", norm) and not re.search(
+            r"\b(tab|page|browser|window|site|website)\b",
+            norm,
+        ):
+            return DetectedIntent(intent="APP_FOCUS", confidence=0.9, hint=text)
+
         # Generic open/navigate
         if re.search(r"\b(go\s+to|navigate\s+to)\b", norm):
             return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.95, hint=text)

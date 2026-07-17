@@ -4,6 +4,7 @@ from jarvis.tools.base import BaseTool
 from jarvis.tools.browser import BrowserTool
 from jarvis.tools.file_tool import FileTool
 from jarvis.tools.terminal import TerminalTool
+from jarvis.tools.application import ApplicationTool
 from jarvis.tools.exceptions import ToolError, ToolNotFoundError, ToolRegistrationError
 from jarvis.tools.registry import ToolRegistry, get_tool_registry
 
@@ -12,6 +13,7 @@ __all__ = [
     "BrowserTool",
     "FileTool",
     "TerminalTool",
+    "ApplicationTool",
     "ToolError",
     "ToolNotFoundError",
     "ToolRegistrationError",
