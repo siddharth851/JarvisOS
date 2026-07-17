@@ -111,8 +111,17 @@ class PatternEntityExtractor:
             return ExtractedEntities(entities={"path": path, "content": content})
 
         if intent_hint == "FILE_READ_FILE":
+            # Try explicit 'file <path>' first, else capture filename-like tokens
             path = self._after_keyword(norm, ["file"])
-            return ExtractedEntities(entities={"path": path})
+            if path:
+                explicit = bool(re.search(r"\bfile\b", text, flags=re.IGNORECASE))
+                return ExtractedEntities(entities={"path": path, "explicit_file": explicit})
+            # capture common filename patterns
+            m = re.search(r"(\S+\.(?:txt|pdf|docx|md|csv|json|pptx|xlsx))", text, flags=re.IGNORECASE)
+            if m:
+                explicit = bool(re.search(r"\bfile\b", text, flags=re.IGNORECASE))
+                return ExtractedEntities(entities={"path": m.group(1).strip(), "explicit_file": explicit})
+            return ExtractedEntities(entities={"path": "", "explicit_file": False})
 
         if intent_hint == "FILE_DELETE_FILE":
             path = self._after_keyword(norm, ["file"])
@@ -126,6 +135,24 @@ class PatternEntityExtractor:
         if intent_hint == "TERMINAL_RUN":
             command = self._strip_terminal_prefix(norm)
             return ExtractedEntities(entities={"command": command})
+        # File intents
+        if intent_hint == "FILE_OPEN_FOLDER":
+            application = self._strip_leading_verbs(norm)
+            return ExtractedEntities(entities={"path": application})
+
+        if intent_hint == "FILE_RENAME":
+            # rename <src> to <dst>
+            m = re.search(r"rename\s+(.+?)\s+to\s+(.+)$", norm, flags=re.IGNORECASE)
+            if not m:
+                return ExtractedEntities(entities={})
+            return ExtractedEntities(entities={"src": m.group(1).strip(), "dst": m.group(2).strip()})
+
+        if intent_hint == "FILE_MOVE" or intent_hint == "FILE_COPY":
+            # move/copy <src> to <dst>
+            m = re.search(r"(?:move|copy)\s+(.+?)\s+to\s+(.+)$", norm, flags=re.IGNORECASE)
+            if not m:
+                return ExtractedEntities(entities={})
+            return ExtractedEntities(entities={"src": m.group(1).strip(), "dst": m.group(2).strip()})
 
         if intent_hint in {"APP_LAUNCH", "APP_CLOSE", "APP_FOCUS"}:
             application = self._extract_application_name(norm)

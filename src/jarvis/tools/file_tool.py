@@ -213,6 +213,42 @@ class FileTool(BaseTool):
         elif action == "delete_file":
             return self.delete_file(path)
 
+        # New higher-level operations that return structured responses via FileManager
+        from jarvis.services.file_manager import get_file_manager
+
+        manager = get_file_manager()
+
+        if action == "open":
+            # open may refer to a file or folder; try file first, then folder
+            file_resp = manager.open_file(path)
+            if file_resp["status"] == "success":
+                return file_resp
+            return manager.open_folder(path)
+
+        if action == "open_folder":
+            return manager.open_folder(path)
+
+        if action == "rename":
+            dst = kwargs.get("dst")
+            if not dst or not isinstance(dst, str):
+                raise ToolError("Missing 'dst' parameter for 'rename' action")
+            return manager.rename(path, dst)
+
+        if action == "move":
+            dst = kwargs.get("dst")
+            if not dst or not isinstance(dst, str):
+                raise ToolError("Missing 'dst' parameter for 'move' action")
+            return manager.move(path, dst)
+
+        if action == "copy":
+            dst = kwargs.get("dst")
+            if not dst or not isinstance(dst, str):
+                raise ToolError("Missing 'dst' parameter for 'copy' action")
+            return manager.copy(path, dst)
+
+        if action == "delete":
+            return manager.delete(path)
+
         elif action == "list_directory":
             return self.list_directory(path)
 

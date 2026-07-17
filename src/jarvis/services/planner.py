@@ -188,12 +188,22 @@ class CommandPlanner:
 
         if intent == "FILE_READ_FILE":
             path = entities.get("path")
+            explicit = entities.get("explicit_file", False)
             if not isinstance(path, str) or not path:
                 return PlannedCommand(type="CHAT")
+            # If the user explicitly said 'file', preserve legacy 'read_file'
+            if explicit:
+                return PlannedCommand(
+                    type="TOOL",
+                    tool="file",
+                    action="read_file",
+                    arguments={"path": path},
+                )
+            # Otherwise prefer manager-backed 'open' for natural-language open commands
             return PlannedCommand(
                 type="TOOL",
                 tool="file",
-                action="read_file",
+                action="open",
                 arguments={"path": path},
             )
 
@@ -221,6 +231,53 @@ class CommandPlanner:
                 tool="file",
                 action="delete_file",
                 arguments={"path": path},
+            )
+
+        if intent == "FILE_OPEN_FOLDER":
+            path = entities.get("path")
+            if not isinstance(path, str) or not path:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="file",
+                action="open_folder",
+                arguments={"path": path},
+            )
+
+        if intent == "FILE_RENAME":
+            src = entities.get("src")
+            dst = entities.get("dst")
+            if not src or not dst:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="file",
+                action="rename",
+                arguments={"src": src, "dst": dst},
+            )
+
+        if intent == "FILE_MOVE":
+            src = entities.get("src")
+            dst = entities.get("dst")
+            if not src or not dst:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="file",
+                action="move",
+                arguments={"src": src, "dst": dst},
+            )
+
+        if intent == "FILE_COPY":
+            src = entities.get("src")
+            dst = entities.get("dst")
+            if not src or not dst:
+                return PlannedCommand(type="CHAT")
+            return PlannedCommand(
+                type="TOOL",
+                tool="file",
+                action="copy",
+                arguments={"src": src, "dst": dst},
             )
 
         if intent == "FILE_LIST_DIRECTORY":

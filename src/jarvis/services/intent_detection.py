@@ -97,11 +97,13 @@ class PatternIntentDetector:
         if re.search(r"\b(search)\b", norm):
             return DetectedIntent(intent="BROWSER_SEARCH_GOOGLE", confidence=0.7, hint=text)
 
+        # (duplicate removed; handled earlier)
+
         # Application lifecycle commands
         if re.search(r"\b(open|launch|start)\b", norm) and not re.search(
             r"\b(website|site|url|webpage|browser|search|google|file|folder|directory|tab|page)\b",
             norm,
-        ):
+        ) and not re.search(r"\.(?:txt|pdf|docx|md|csv|json|pptx|xlsx)\b", norm):
             return DetectedIntent(intent="APP_LAUNCH", confidence=0.9, hint=text)
 
         if re.search(r"\b(close|quit|exit)\b", norm) and not re.search(
@@ -120,7 +122,7 @@ class PatternIntentDetector:
         if re.search(r"\b(go\s+to|navigate\s+to)\b", norm):
             return DetectedIntent(intent="BROWSER_OPEN_DESTINATION", confidence=0.95, hint=text)
 
-        if re.search(r"\b(open|visit|launch)\b", norm):
+        if re.search(r"\b(open|visit|launch)\b", norm) and not re.search(r"\.(?:txt|pdf|docx|md|csv|json|pptx|xlsx)\b", norm):
             if re.fullmatch(r"(open|visit|launch)\s+google", norm.strip()):
                 return DetectedIntent(intent="BROWSER_OPEN_GOOGLE", confidence=0.95)
 
@@ -155,6 +157,26 @@ class PatternIntentDetector:
         # Tool: terminal
         if re.search(r"\b(run|execute|terminal)\b", norm):
             return DetectedIntent(intent="TERMINAL_RUN", confidence=0.9, hint=text)
+
+        # File system commands without explicit 'file' token, e.g. "open Resume.pdf"
+        if re.search(r"\b(open|create|make|delete|remove|rename|move|copy|quit)\b", norm) and re.search(r"\w+\.(?:txt|pdf|docx|md|csv|json|pptx|xlsx)\b", norm):
+            # prefer specific file actions
+            if re.search(r"\brename\b", norm):
+                return DetectedIntent(intent="FILE_RENAME", confidence=0.95, hint=text)
+            if re.search(r"\b(move)\b", norm):
+                return DetectedIntent(intent="FILE_MOVE", confidence=0.95, hint=text)
+            if re.search(r"\b(copy)\b", norm):
+                return DetectedIntent(intent="FILE_COPY", confidence=0.95, hint=text)
+            if re.search(r"\b(delete|remove)\b", norm):
+                return DetectedIntent(intent="FILE_DELETE_FILE", confidence=0.95, hint=text)
+            if re.search(r"\b(create|make)\b", norm):
+                return DetectedIntent(intent="FILE_CREATE_FILE", confidence=0.9, hint=text)
+            # fallback to open/read
+            return DetectedIntent(intent="FILE_READ_FILE", confidence=0.9, hint=text)
+
+        # Open folders like 'open Downloads' or 'open Documents'
+        if re.search(r"\b(open|show)\b", norm) and re.search(r"\b(documents|downloads|desktop|pictures|music|videos)\b", norm):
+            return DetectedIntent(intent="FILE_OPEN_FOLDER", confidence=0.9, hint=text)
 
         return None
 

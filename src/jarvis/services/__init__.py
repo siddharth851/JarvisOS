@@ -11,6 +11,8 @@ from jarvis.services.application_manager import (
 	ApplicationManager,
 	get_application_manager,
 )
+from jarvis.services.file_resolver import FileResolver, FileCandidate, FileResolutionError, get_file_resolver
+from jarvis.services.file_manager import FileManager, get_file_manager
 
 __all__ = [
 	"ChatService",
@@ -21,4 +23,10 @@ __all__ = [
 	"get_application_resolver",
 	"ApplicationManager",
 	"get_application_manager",
+	"FileResolver",
+	"FileCandidate",
+	"FileResolutionError",
+	"get_file_resolver",
+	"FileManager",
+	"get_file_manager",
 ]
